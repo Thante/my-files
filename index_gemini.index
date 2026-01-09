@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spector LMS | Course Management</title>
+    <title>Spector LMS | Enterprise Edition</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
@@ -20,23 +20,14 @@
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
-                        primary: {
-                            DEFAULT: '#2563eb', // Professional Blue
-                            light: '#60a5fa',
-                            dark: '#1d4ed8',
-                        },
-                        secondary: '#64748b', // Slate Gray
-                        accent: '#10b981',    // Emerald Green
-                        background: '#f8fafc', // Light Slate
+                        primary: { DEFAULT: '#2563eb', light: '#60a5fa', dark: '#1d4ed8' },
+                        secondary: '#64748b',
+                        accent: '#10b981',
+                        background: '#f8fafc',
                         surface: '#ffffff',
-                        text: {
-                            main: '#1e293b',
-                            muted: '#94a3b8'
-                        }
+                        text: { main: '#1e293b', muted: '#94a3b8' }
                     },
                     boxShadow: {
                         'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
@@ -49,26 +40,30 @@
 
     <style>
         body { background-color: #f8fafc; }
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
         .fade-in { animation: fadeIn 0.4s ease-out forwards; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .shimmer {
+            background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect, useRef, useMemo } = React;
 
-        // --- Icons (SVG Components) ---
+        // --- ICONS ---
         const Icon = ({ name, className = "w-5 h-5" }) => {
             const icons = {
                 dashboard: <path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z" />,
@@ -78,110 +73,243 @@
                 search: <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />,
                 bell: <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" />,
                 trendUp: <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" />,
-                users: <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />,
-                book: <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />,
-                dots: <circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" />,
+                play: <polygon points="5 3 19 12 5 21 5 3"></polygon>,
+                file: <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline>,
+                check: <polyline points="20 6 9 17 4 12"></polyline>,
+                chevronRight: <polyline points="9 18 15 12 9 6"></polyline>,
+                back: <line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline>
             };
-
-            return (
-                <svg 
-                    xmlns="http://www.w3.org/2000/svg" 
-                    width="24" height="24" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="2" 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    className={className}
-                >
-                    {icons[name] || icons.dashboard}
-                </svg>
-            );
+            return <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{icons[name]}</svg>;
         };
 
-        // --- Mock Data ---
-        const COURSES = [
-            { id: 1, title: 'Advanced React Patterns', instructor: 'Sarah Drasner', progress: 78, students: 1240, cover: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&auto=format&fit=crop&q=60' },
-            { id: 2, title: 'Node.js Microservices', instructor: 'Ryan Dahl', progress: 45, students: 890, cover: 'https://images.unsplash.com/photo-1627398242454-45a1465c2479?w=800&auto=format&fit=crop&q=60' },
-            { id: 3, title: 'UI/UX Design Systems', instructor: 'Brian Chesky', progress: 12, students: 2300, cover: 'https://images.unsplash.com/photo-1586717791821-3f44a5638d0f?w=800&auto=format&fit=crop&q=60' },
-            { id: 4, title: 'PostgreSQL Mastery', instructor: 'Michael Stone', progress: 100, students: 650, cover: 'https://images.unsplash.com/photo-1599837565318-67429bde7162?w=800&auto=format&fit=crop&q=60' },
-        ];
+        // --- REALISTIC DATA FACTORY ---
+        const MOCK_DB = {
+            courses: [
+                { 
+                    id: 101, 
+                    title: 'Advanced System Architecture', 
+                    instructor: 'Dr. Sarah Connor', 
+                    category: 'Engineering',
+                    progress: 78, 
+                    students: 1240, 
+                    cover: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=60',
+                    description: "Master the art of distributed systems, microservices patterns, and high-availability design in this comprehensive masterclass.",
+                    modules: [
+                        { title: "Module 1: Distributed Patterns", duration: "45m", type: "video", completed: true },
+                        { title: "Module 2: Event-Driven Design", duration: "55m", type: "video", completed: true },
+                        { title: "System Design Capstone", duration: "2h 30m", type: "project", completed: false },
+                        { title: "Scaling for Millions", duration: "1h 15m", type: "video", completed: false }
+                    ]
+                },
+                { 
+                    id: 102, 
+                    title: 'Fullstack React & Node.js', 
+                    instructor: 'Ryan Dahl', 
+                    category: 'Development',
+                    progress: 45, 
+                    students: 3100, 
+                    cover: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&auto=format&fit=crop&q=60',
+                    description: "Build production-ready applications from scratch. Covers Next.js 14, Server Actions, PostgreSQL, and Prisma.",
+                    modules: [
+                        { title: "React Fundamentals", duration: "20m", type: "video", completed: true },
+                        { title: "Hooks Deep Dive", duration: "40m", type: "video", completed: true },
+                        { title: "Server Side Rendering", duration: "50m", type: "video", completed: false }
+                    ]
+                },
+                { 
+                    id: 103, 
+                    title: 'Enterprise Security Ops', 
+                    instructor: 'Elliot Alderson', 
+                    category: 'Security',
+                    progress: 12, 
+                    students: 850, 
+                    cover: 'https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=800&auto=format&fit=crop&q=60',
+                    description: "Learn offensive and defensive security strategies for enterprise networks. Pentesting, compliance, and zero-trust.",
+                    modules: [
+                        { title: "Intro to NetSec", duration: "1h", type: "video", completed: true },
+                        { title: "Penetration Testing Lab", duration: "3h", type: "lab", completed: false }
+                    ]
+                },
+                { 
+                    id: 104, 
+                    title: 'Cloud Infrastructure (AWS)', 
+                    instructor: 'Jeff B.', 
+                    category: 'DevOps',
+                    progress: 0, 
+                    students: 5400, 
+                    cover: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop&q=60',
+                    description: "Zero to Hero in AWS. IAM, EC2, S3, Lambda, and Kubernetes configuration management.",
+                    modules: Array(5).fill({ title: "AWS Module Placeholder", duration: "1h", type: "video", completed: false })
+                },
+            ],
+            students: [
+                { id: 1, name: 'Alex Thompson', email: 'alex.t@corp.com', course: 'System Architecture', status: 'Active', enrolled: '2025-12-01' },
+                { id: 2, name: 'Maria Garcia', email: 'm.garcia@studio.io', course: 'React & Node', status: 'Pending', enrolled: '2025-12-03' },
+                { id: 3, name: 'James Chen', email: 'j.chen@tech.net', course: 'Enterprise Security', status: 'Active', enrolled: '2025-12-05' },
+                { id: 4, name: 'Emily Wilson', email: 'emily.w@freelance.com', course: 'System Architecture', status: 'Inactive', enrolled: '2025-11-20' },
+                { id: 5, name: 'David Kim', email: 'dkim@start.up', course: 'Cloud Infra', status: 'Active', enrolled: '2025-12-10' },
+                { id: 6, name: 'Sarah Jenkins', email: 'sarah.j@web.dev', course: 'React & Node', status: 'Active', enrolled: '2025-12-11' },
+                { id: 7, name: 'Robert Fox', email: 'r.fox@design.co', course: 'Enterprise Security', status: 'Blocked', enrolled: '2025-10-15' },
+            ]
+        };
 
-        const STUDENTS = [
-            { id: 1, name: 'Alex Thompson', email: 'alex@example.com', course: 'React Patterns', status: 'Active', enrolled: '2025-12-01' },
-            { id: 2, name: 'Maria Garcia', email: 'maria@example.com', course: 'UI/UX Design', status: 'Pending', enrolled: '2025-12-03' },
-            { id: 3, name: 'James Chen', email: 'james@example.com', course: 'Node.js', status: 'Active', enrolled: '2025-12-05' },
-            { id: 4, name: 'Emily Wilson', email: 'emily@example.com', course: 'React Patterns', status: 'Inactive', enrolled: '2025-11-20' },
-            { id: 5, name: 'David Kim', email: 'david@example.com', course: 'PostgreSQL', status: 'Active', enrolled: '2025-12-10' },
-        ];
+        // --- COMPONENTS ---
 
-        // --- Components ---
-
-        const SidebarItem = ({ icon, label, active, onClick }) => (
-            <button 
-                onClick={onClick}
-                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-300 ${
-                    active 
-                    ? 'bg-primary/10 text-primary font-medium' 
-                    : 'text-secondary hover:bg-slate-50 hover:text-text-main'
-                }`}
-            >
-                <Icon name={icon} className={active ? "text-primary" : "text-secondary"} />
-                <span>{label}</span>
-            </button>
+        const Loader = () => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse p-1">
+                {[1,2,3].map(i => (
+                    <div key={i} className="bg-white rounded-xl h-64 border border-slate-100 p-4">
+                        <div className="h-32 bg-slate-100 rounded-lg mb-4 shimmer"></div>
+                        <div className="h-4 bg-slate-100 rounded w-3/4 mb-2"></div>
+                        <div className="h-4 bg-slate-100 rounded w-1/2"></div>
+                    </div>
+                ))}
+            </div>
         );
 
-        const MetricCard = ({ title, value, trend, icon, delay }) => (
-            <div 
-                className="bg-surface rounded-xl p-6 shadow-soft border border-slate-100 relative overflow-hidden group hover:shadow-lg transition-all duration-300 fade-in"
-                style={{ animationDelay: `${delay}ms` }}
-            >
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-primary-light/10 to-transparent rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                
+        const MetricCard = ({ title, value, trend, icon, color }) => (
+            <div className="bg-surface rounded-xl p-6 shadow-soft border border-slate-100 relative overflow-hidden group hover:translate-y-[-2px] transition-all duration-300">
+                <div className={`absolute top-0 right-0 w-24 h-24 bg-${color}-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110 opacity-50`}></div>
                 <div className="flex justify-between items-start relative z-10">
                     <div>
                         <p className="text-sm font-medium text-secondary">{title}</p>
-                        <h3 className="text-3xl font-bold text-text-main mt-2">{value}</h3>
+                        <h3 className="text-3xl font-bold text-text-main mt-2 tracking-tight">{value}</h3>
                     </div>
-                    <div className="p-3 bg-primary/5 rounded-lg text-primary">
+                    <div className={`p-3 bg-${color}-50 text-${color}-600 rounded-lg`}>
                         <Icon name={icon} />
                     </div>
                 </div>
-                
                 <div className="mt-4 flex items-center text-sm">
-                    <span className="text-accent font-medium flex items-center">
-                        +{trend}% <Icon name="trendUp" className="w-3 h-3 ml-1" />
+                    <span className={`${trend >= 0 ? 'text-accent' : 'text-red-500'} font-medium flex items-center`}>
+                        {trend > 0 ? '+' : ''}{trend}%
                     </span>
                     <span className="text-secondary ml-2">vs last month</span>
                 </div>
             </div>
         );
 
-        const CourseCard = ({ course }) => (
-            <div className="bg-surface rounded-xl shadow-card border border-slate-100 overflow-hidden hover:shadow-lg transition-all duration-300 group flex flex-col h-full hover:-translate-y-1">
+        const CourseDetail = ({ course, onBack }) => {
+            const [activeModule, setActiveModule] = useState(0);
+
+            return (
+                <div className="fade-in h-full flex flex-col">
+                    <button onClick={onBack} className="flex items-center text-secondary hover:text-primary mb-4 w-fit">
+                        <Icon name="back" className="w-4 h-4 mr-2" /> Back to Courses
+                    </button>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
+                        {/* Main Content Area */}
+                        <div className="lg:col-span-2 space-y-6">
+                            <div className="bg-black rounded-xl overflow-hidden aspect-video relative group shadow-lg">
+                                <img src={course.cover} className="w-full h-full object-cover opacity-60" />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <button className="bg-white/20 backdrop-blur-sm p-6 rounded-full hover:scale-110 transition-transform hover:bg-white/30">
+                                        <Icon name="play" className="w-12 h-12 text-white fill-current" />
+                                    </button>
+                                </div>
+                                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 to-transparent">
+                                    <h2 className="text-white text-2xl font-bold">{course.modules[activeModule].title}</h2>
+                                    <p className="text-gray-300 mt-1">{course.title} • {course.modules[activeModule].duration}</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-surface p-8 rounded-xl border border-slate-100 shadow-soft">
+                                <div className="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+                                    <h3 className="text-xl font-bold text-text-main">Lesson Notes</h3>
+                                    <div className="flex gap-2">
+                                        <button className="text-sm px-3 py-1.5 border border-slate-200 rounded hover:bg-slate-50 text-secondary">Download PDF</button>
+                                        <button className="text-sm px-3 py-1.5 bg-primary/10 text-primary rounded font-medium hover:bg-primary/20">Edit Content</button>
+                                    </div>
+                                </div>
+                                <div className="prose prose-slate max-w-none text-secondary">
+                                    <p>In this module, we explore the fundamental patterns of distributed system architecture. Specifically, we focus on the <strong>Event-Sourcing</strong> pattern and how it differs from traditional CRUD operations.</p>
+                                    <ul className="list-disc pl-5 space-y-2 mt-4">
+                                        <li>Understanding the CAP theorem in modern infrastructure.</li>
+                                        <li>Implementing eventual consistency without data loss.</li>
+                                        <li>Designing idempotent consumers for message queues.</li>
+                                    </ul>
+                                    <div className="bg-slate-50 p-4 rounded-lg mt-6 border-l-4 border-primary">
+                                        <p className="font-mono text-sm text-slate-700">
+                                            <span className="text-primary">const</span> consumer = <span className="text-accent">new</span> KafkaConsumer({'{'} groupId: 'payment-service' {'}'});
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sidebar Module List */}
+                        <div className="bg-surface rounded-xl border border-slate-100 shadow-soft flex flex-col h-[calc(100vh-140px)] overflow-hidden">
+                            <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                                <h3 className="font-bold text-text-main">Course Content</h3>
+                                <p className="text-xs text-secondary mt-1">{course.modules.filter(m => m.completed).length} / {course.modules.length} Completed</p>
+                                <div className="w-full bg-slate-200 rounded-full h-1.5 mt-3">
+                                    <div className="bg-accent h-full rounded-full" style={{width: `${course.progress}%`}}></div>
+                                </div>
+                            </div>
+                            <div className="overflow-y-auto flex-1 p-2 space-y-1">
+                                {course.modules.map((mod, idx) => (
+                                    <button 
+                                        key={idx}
+                                        onClick={() => setActiveModule(idx)}
+                                        className={`w-full flex items-center p-3 rounded-lg text-left transition-colors ${
+                                            idx === activeModule 
+                                            ? 'bg-primary/5 border border-primary/20' 
+                                            : 'hover:bg-slate-50 border border-transparent'
+                                        }`}
+                                    >
+                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center mr-3 flex-shrink-0 ${
+                                            mod.completed ? 'bg-accent text-white' : 
+                                            idx === activeModule ? 'bg-primary text-white' : 'bg-slate-200 text-slate-500'
+                                        }`}>
+                                            {mod.completed ? <Icon name="check" className="w-3 h-3" /> : <span className="text-xs font-bold">{idx + 1}</span>}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className={`text-sm font-medium truncate ${idx === activeModule ? 'text-primary' : 'text-text-main'}`}>
+                                                {mod.title}
+                                            </p>
+                                            <div className="flex items-center text-xs text-secondary mt-0.5">
+                                                <Icon name={mod.type === 'video' ? 'play' : 'file'} className="w-3 h-3 mr-1" />
+                                                {mod.duration}
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="p-4 border-t border-slate-100">
+                                <button className="w-full py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition-colors shadow-lg shadow-primary/25">
+                                    Continue Learning
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const CourseCard = ({ course, onClick }) => (
+            <div 
+                onClick={() => onClick(course)}
+                className="bg-surface rounded-xl shadow-card border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300 group flex flex-col h-full cursor-pointer hover:-translate-y-1"
+            >
                 <div className="relative h-48 overflow-hidden">
-                    <img src={course.cover} alt={course.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <img src={course.cover} alt={course.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
+                    <div className="absolute bottom-4 left-4 right-4">
+                        <span className="inline-block px-2 py-1 rounded-md bg-white/20 backdrop-blur-md text-white text-xs font-medium mb-2 border border-white/10">{course.category}</span>
+                    </div>
                 </div>
                 <div className="p-5 flex-1 flex flex-col">
-                    <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded">Development</span>
-                        <button className="text-secondary hover:text-text-main"><Icon name="dots" className="w-4 h-4"/></button>
-                    </div>
-                    <h3 className="font-bold text-lg text-text-main mb-1">{course.title}</h3>
-                    <p className="text-sm text-secondary mb-4">By {course.instructor}</p>
+                    <h3 className="font-bold text-lg text-text-main mb-1 line-clamp-1">{course.title}</h3>
+                    <p className="text-sm text-secondary mb-3">By {course.instructor}</p>
+                    <p className="text-xs text-secondary/80 mb-4 line-clamp-2">{course.description}</p>
                     
-                    <div className="mt-auto">
-                        <div className="flex justify-between text-xs text-secondary mb-1">
-                            <span>Progress</span>
-                            <span>{course.progress}%</span>
+                    <div className="mt-auto pt-4 border-t border-slate-50">
+                        <div className="flex justify-between text-xs text-secondary mb-1.5">
+                            <span className="font-medium">{course.progress}% Complete</span>
+                            <span>{course.students} Enrolled</span>
                         </div>
-                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                            <div 
-                                className={`h-full rounded-full transition-all duration-1000 ${course.progress === 100 ? 'bg-accent' : 'bg-primary'}`}
-                                style={{ width: `${course.progress}%` }}
-                            ></div>
+                        <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                            <div className={`h-full rounded-full transition-all duration-1000 ${course.progress === 100 ? 'bg-accent' : 'bg-primary'}`} style={{ width: `${course.progress}%` }}></div>
                         </div>
                     </div>
                 </div>
@@ -193,19 +321,17 @@
             
             useEffect(() => {
                 const ctx = chartRef.current.getContext('2d');
-                
-                // Gradient for chart
-                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-                gradient.addColorStop(0, 'rgba(37, 99, 235, 0.2)');
+                const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+                gradient.addColorStop(0, 'rgba(37, 99, 235, 0.15)');
                 gradient.addColorStop(1, 'rgba(37, 99, 235, 0)');
 
                 const chart = new Chart(ctx, {
                     type: 'line',
                     data: {
-                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
                         datasets: [{
-                            label: 'Active Students',
-                            data: [65, 78, 90, 85, 95, 110],
+                            label: 'Daily Active Users',
+                            data: [1250, 1800, 1600, 2100, 1950, 2400, 2800],
                             borderColor: '#2563eb',
                             backgroundColor: gradient,
                             tension: 0.4,
@@ -215,11 +341,20 @@
                             pointBorderWidth: 2,
                             pointRadius: 4,
                             pointHoverRadius: 6
+                        }, {
+                            label: 'Course Completions',
+                            data: [400, 600, 550, 800, 700, 900, 1100],
+                            borderColor: '#10b981',
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 0
                         }]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        interaction: { intersect: false, mode: 'index' },
                         plugins: {
                             legend: { display: false },
                             tooltip: {
@@ -227,112 +362,164 @@
                                 padding: 12,
                                 titleFont: { family: 'Inter', size: 13 },
                                 bodyFont: { family: 'Inter', size: 13 },
-                                displayColors: false,
+                                displayColors: true,
                                 cornerRadius: 8,
+                                boxPadding: 4
                             }
                         },
                         scales: {
-                            y: {
-                                grid: { color: '#f1f5f9', borderDash: [5, 5] },
-                                ticks: { font: { family: 'Inter' }, color: '#64748b' },
-                                border: { display: false }
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: { font: { family: 'Inter' }, color: '#64748b' },
-                                border: { display: false }
-                            }
+                            y: { grid: { color: '#f1f5f9', borderDash: [5, 5] }, ticks: { font: { family: 'Inter' }, color: '#94a3b8' }, border: { display: false } },
+                            x: { grid: { display: false }, ticks: { font: { family: 'Inter' }, color: '#94a3b8' }, border: { display: false } }
                         }
                     }
                 });
-
                 return () => chart.destroy();
             }, []);
 
             return (
-                <div className="bg-surface p-6 rounded-xl shadow-soft border border-slate-100 h-96">
-                    <h3 className="text-lg font-bold text-text-main mb-6">Engagement Overview</h3>
-                    <div className="h-80 w-full">
+                <div className="bg-surface p-6 rounded-xl shadow-soft border border-slate-100 h-96 flex flex-col">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-lg font-bold text-text-main">Engagement Analytics</h3>
+                        <select className="text-xs bg-slate-50 border border-slate-200 rounded px-2 py-1 text-secondary outline-none">
+                            <option>Last 7 Days</option>
+                            <option>Last Month</option>
+                        </select>
+                    </div>
+                    <div className="flex-1 w-full relative">
                         <canvas ref={chartRef}></canvas>
                     </div>
                 </div>
             );
         };
 
-        const StudentTable = () => (
-            <div className="bg-surface rounded-xl shadow-soft border border-slate-100 overflow-hidden">
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-text-main">Recent Enrollments</h3>
-                    <button className="text-sm text-primary font-medium hover:text-primary-dark">View All</button>
+        const Dashboard = ({ onNavigate }) => (
+            <div className="space-y-8 fade-in">
+                {/* Header Section */}
+                <div className="flex justify-between items-end">
+                    <div>
+                        <h1 className="text-2xl font-bold text-text-main">Welcome back, Michael</h1>
+                        <p className="text-secondary mt-1">Here is what's happening in your academy today.</p>
+                    </div>
+                    <div className="flex gap-3">
+                        <button className="px-4 py-2 bg-white border border-slate-200 text-secondary rounded-lg text-sm font-medium hover:bg-slate-50">Download Report</button>
+                        <button className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium shadow-lg shadow-primary/25 hover:bg-primary-dark">Create Campaign</button>
+                    </div>
                 </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50 text-xs text-secondary uppercase tracking-wider">
-                                <th className="p-4 font-semibold">Student</th>
-                                <th className="p-4 font-semibold">Course</th>
-                                <th className="p-4 font-semibold">Date</th>
-                                <th className="p-4 font-semibold">Status</th>
-                                <th className="p-4 font-semibold text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-sm divide-y divide-slate-100">
-                            {STUDENTS.map((student) => (
-                                <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
-                                    <td className="p-4">
-                                        <div className="flex items-center">
-                                            <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold mr-3 text-xs">
+
+                {/* Metrics */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <MetricCard title="Total Students" value="12,543" trend="12.5" icon="trendUp" color="blue" />
+                    <MetricCard title="Course Revenue" value="$84.2k" trend="8.2" icon="dashboard" color="emerald" />
+                    <MetricCard title="Avg. Completion" value="68%" trend="-2.4" icon="students" color="amber" />
+                    <MetricCard title="Active Instructors" value="24" trend="4.1" icon="users" color="purple" />
+                </div>
+
+                {/* Main Dashboard Content */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2">
+                        <AnalyticsChart />
+                    </div>
+                    <div className="lg:col-span-1 flex flex-col gap-6">
+                        {/* Quick Actions / Promo */}
+                        <div className="bg-gradient-to-br from-primary to-primary-dark text-white p-6 rounded-xl shadow-lg shadow-primary/30 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl"></div>
+                            <div className="relative z-10">
+                                <h3 className="text-xl font-bold mb-2">Q1 Goals Reached!</h3>
+                                <p className="text-blue-100 text-sm mb-6 leading-relaxed">You have hit 110% of your student enrollment target for this quarter.</p>
+                                <button className="bg-white text-primary px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-50 transition-colors w-full shadow-md">
+                                    View Detailed Report
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Recent Activity List */}
+                        <div className="bg-surface p-6 rounded-xl shadow-soft border border-slate-100 flex-1">
+                            <h3 className="font-bold text-text-main mb-4">Recent Activity</h3>
+                            <div className="space-y-4">
+                                {[
+                                    { msg: "Alex T. enrolled in System Arch", time: "2m ago", type: "enroll" },
+                                    { msg: "New comment on React Module 2", time: "15m ago", type: "comment" },
+                                    { msg: "Server maintenance scheduled", time: "1h ago", type: "alert" }
+                                ].map((item, i) => (
+                                    <div key={i} className="flex items-start gap-3">
+                                        <div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0"></div>
+                                        <div>
+                                            <p className="text-sm text-text-main font-medium">{item.msg}</p>
+                                            <p className="text-xs text-secondary">{item.time}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Table Section */}
+                <div className="bg-surface rounded-xl shadow-soft border border-slate-100 overflow-hidden">
+                    <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                        <h3 className="text-lg font-bold text-text-main">Top Performing Students</h3>
+                        <button onClick={() => onNavigate('students')} className="text-sm text-primary font-medium hover:underline">View All Students</button>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                            <thead className="bg-slate-50 text-xs text-secondary uppercase tracking-wider">
+                                <tr>
+                                    <th className="p-4 font-semibold">Student</th>
+                                    <th className="p-4 font-semibold">Current Course</th>
+                                    <th className="p-4 font-semibold">Enrolled</th>
+                                    <th className="p-4 font-semibold">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 text-sm">
+                                {MOCK_DB.students.slice(0, 4).map(student => (
+                                    <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
+                                        <td className="p-4 flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-primary-light text-white flex items-center justify-center font-bold text-xs shadow-sm">
                                                 {student.name.charAt(0)}
                                             </div>
                                             <div>
                                                 <div className="font-medium text-text-main">{student.name}</div>
                                                 <div className="text-xs text-secondary">{student.email}</div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-text-main">{student.course}</td>
-                                    <td className="p-4 text-secondary">{student.enrolled}</td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                            student.status === 'Active' ? 'bg-emerald-100 text-emerald-700' :
-                                            student.status === 'Pending' ? 'bg-amber-100 text-amber-700' :
-                                            'bg-slate-100 text-slate-600'
-                                        }`}>
-                                            {student.status}
-                                        </span>
-                                    </td>
-                                    <td className="p-4 text-right">
-                                        <button className="text-secondary hover:text-primary transition-colors">
-                                            <Icon name="dots" className="w-4 h-4 ml-auto" />
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                                        </td>
+                                        <td className="p-4 text-secondary">{student.course}</td>
+                                        <td className="p-4 text-secondary">{student.enrolled}</td>
+                                        <td className="p-4">
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${
+                                                student.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                                student.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                                'bg-slate-50 text-slate-600 border-slate-200'
+                                            }`}>{student.status}</span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         );
 
-        // --- Main App ---
+        // --- MAIN APP ---
         const App = () => {
             const [activeTab, setActiveTab] = useState('dashboard');
+            const [selectedCourse, setSelectedCourse] = useState(null);
             const [isLoading, setIsLoading] = useState(true);
 
-            // Simulate initial loading
             useEffect(() => {
-                setTimeout(() => setIsLoading(false), 800);
+                setTimeout(() => setIsLoading(false), 1200); // Realistic loading simulation
             }, []);
 
+            const handleCourseClick = (course) => {
+                setSelectedCourse(course);
+                setActiveTab('course_detail');
+            };
+
             const renderContent = () => {
-                if (isLoading) {
-                    return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-pulse">
-                            {[1,2,3,4].map(i => (
-                                <div key={i} className="h-40 bg-slate-200 rounded-xl"></div>
-                            ))}
-                        </div>
-                    );
+                if (isLoading) return <Loader />;
+
+                if (activeTab === 'course_detail' && selectedCourse) {
+                    return <CourseDetail course={selectedCourse} onBack={() => setActiveTab('courses')} />;
                 }
 
                 switch(activeTab) {
@@ -340,13 +527,18 @@
                         return (
                              <div className="space-y-6 fade-in">
                                 <div className="flex justify-between items-center">
-                                    <h2 className="text-2xl font-bold text-text-main">Course Management</h2>
-                                    <button className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-primary/30">
-                                        + Create Course
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-text-main">Course Management</h2>
+                                        <p className="text-secondary">Manage your curriculum and content</p>
+                                    </div>
+                                    <button className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-primary/30 flex items-center gap-2">
+                                        <span className="text-xl leading-none mb-0.5">+</span> Create Course
                                     </button>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {COURSES.map(course => <CourseCard key={course.id} course={course} />)}
+                                    {MOCK_DB.courses.map(course => (
+                                        <CourseCard key={course.id} course={course} onClick={handleCourseClick} />
+                                    ))}
                                 </div>
                             </div>
                         );
@@ -354,114 +546,114 @@
                         return (
                             <div className="space-y-6 fade-in">
                                 <h2 className="text-2xl font-bold text-text-main">Student Directory</h2>
-                                <StudentTable />
+                                <div className="bg-surface rounded-xl shadow-soft border border-slate-100 overflow-hidden">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-slate-50 text-xs text-secondary uppercase tracking-wider">
+                                            <tr>
+                                                <th className="p-4">Name</th>
+                                                <th className="p-4">Email</th>
+                                                <th className="p-4">Course</th>
+                                                <th className="p-4">Status</th>
+                                                <th className="p-4 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100 text-sm">
+                                            {MOCK_DB.students.map(s => (
+                                                <tr key={s.id} className="hover:bg-slate-50">
+                                                    <td className="p-4 font-medium text-text-main">{s.name}</td>
+                                                    <td className="p-4 text-secondary">{s.email}</td>
+                                                    <td className="p-4 text-secondary">{s.course}</td>
+                                                    <td className="p-4"><span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-full text-xs">{s.status}</span></td>
+                                                    <td className="p-4 text-right text-primary hover:underline cursor-pointer">Edit</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         );
-                    default: // Dashboard
-                        return (
-                            <div className="space-y-8 fade-in">
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    <MetricCard title="Total Students" value="2,543" trend="12" icon="users" delay="0" />
-                                    <MetricCard title="Active Courses" value="18" trend="5" icon="book" delay="100" />
-                                    <MetricCard title="Total Revenue" value="$45.2k" trend="8.5" icon="trendUp" delay="200" />
-                                    <MetricCard title="Completion Rate" value="68%" trend="-2" icon="trendUp" delay="300" />
-                                </div>
-
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                    <div className="lg:col-span-2">
-                                        <AnalyticsChart />
-                                    </div>
-                                    <div className="lg:col-span-1">
-                                        <div className="bg-primary text-white p-6 rounded-xl shadow-lg shadow-primary/30 h-full flex flex-col justify-between overflow-hidden relative">
-                                            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-                                            <div className="relative z-10">
-                                                <h3 className="text-xl font-bold mb-2">Upgrade to Pro</h3>
-                                                <p className="text-blue-100 text-sm mb-6">Unlock advanced analytics and unlimited course hosting.</p>
-                                                <button className="bg-white text-primary px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-50 transition-colors w-full">
-                                                    View Plans
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <StudentTable />
-                            </div>
-                        );
+                    default: return <Dashboard onNavigate={setActiveTab} />;
                 }
             };
 
+            const NavItem = ({ id, icon, label }) => (
+                <button 
+                    onClick={() => { setActiveTab(id); setSelectedCourse(null); }}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group ${
+                        activeTab === id || (id === 'courses' && activeTab === 'course_detail')
+                        ? 'bg-primary/10 text-primary font-semibold' 
+                        : 'text-secondary hover:bg-slate-50 hover:text-text-main'
+                    }`}
+                >
+                    <Icon name={icon} className={activeTab === id ? "text-primary" : "text-secondary group-hover:text-text-main"} />
+                    <span>{label}</span>
+                </button>
+            );
+
             return (
-                <div className="flex h-screen overflow-hidden">
+                <div className="flex h-screen bg-background text-text-main font-sans overflow-hidden selection:bg-primary/20">
                     {/* Sidebar */}
-                    <aside className="w-64 bg-surface border-r border-slate-200 hidden md:flex flex-col z-20">
+                    <aside className="w-64 bg-surface border-r border-slate-200 hidden md:flex flex-col z-30 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
                         <div className="p-6">
-                            <div className="flex items-center gap-2 text-primary font-bold text-xl">
-                                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">S</div>
+                            <div className="flex items-center gap-2.5 text-primary font-bold text-xl tracking-tight">
+                                <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center text-white shadow-lg shadow-primary/30">
+                                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 8.5l-2.5 1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z"/></svg>
+                                </div>
                                 <span>Spector LMS</span>
                             </div>
                         </div>
                         
-                        <nav className="flex-1 px-4 space-y-2">
-                            <SidebarItem 
-                                icon="dashboard" 
-                                label="Dashboard" 
-                                active={activeTab === 'dashboard'} 
-                                onClick={() => setActiveTab('dashboard')} 
-                            />
-                            <SidebarItem 
-                                icon="courses" 
-                                label="Courses" 
-                                active={activeTab === 'courses'} 
-                                onClick={() => setActiveTab('courses')} 
-                            />
-                            <SidebarItem 
-                                icon="students" 
-                                label="Students" 
-                                active={activeTab === 'students'} 
-                                onClick={() => setActiveTab('students')} 
-                            />
-                             <div className="pt-4 mt-4 border-t border-slate-100">
-                                <SidebarItem icon="settings" label="Settings" />
+                        <nav className="flex-1 px-4 space-y-1.5 mt-2">
+                            <NavItem id="dashboard" icon="dashboard" label="Dashboard" />
+                            <NavItem id="courses" icon="courses" label="Courses" />
+                            <NavItem id="students" icon="students" label="Students" />
+                            <NavItem id="analytics" icon="trendUp" label="Analytics" />
+                            
+                            <div className="pt-6 mt-6 border-t border-slate-100">
+                                <p className="px-4 text-xs font-semibold text-secondary uppercase tracking-wider mb-2">System</p>
+                                <NavItem id="settings" icon="settings" label="Settings" />
                             </div>
                         </nav>
 
-                        <div className="p-4 border-t border-slate-100">
+                        <div className="p-4 border-t border-slate-100 bg-slate-50/50">
                             <div className="flex items-center gap-3">
-                                <img src="https://ui-avatars.com/api/?name=Michael+Spector&background=2563eb&color=fff" alt="User" className="w-10 h-10 rounded-full" />
-                                <div>
-                                    <p className="text-sm font-medium text-text-main">Michael Spector</p>
-                                    <p className="text-xs text-secondary">Administrator</p>
+                                <img src="https://ui-avatars.com/api/?name=Michael+Spector&background=2563eb&color=fff&bold=true" alt="User" className="w-10 h-10 rounded-full border-2 border-white shadow-sm" />
+                                <div className="overflow-hidden">
+                                    <p className="text-sm font-bold text-text-main truncate">Michael Spector</p>
+                                    <p className="text-xs text-secondary truncate">Super Admin</p>
                                 </div>
                             </div>
                         </div>
                     </aside>
 
                     {/* Main Content */}
-                    <main className="flex-1 flex flex-col min-w-0 bg-background h-screen">
+                    <main className="flex-1 flex flex-col min-w-0 h-screen relative">
                         {/* Topbar */}
-                        <header className="h-16 bg-surface border-b border-slate-200 flex items-center justify-between px-8 flex-shrink-0 z-10">
-                            <div className="flex items-center bg-slate-100 rounded-lg px-3 py-2 w-64 focus-within:ring-2 ring-primary/50 transition-all">
+                        <header className="h-16 bg-surface/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-8 z-20 absolute top-0 w-full">
+                            <div className="flex items-center bg-slate-100 rounded-lg px-3 py-2 w-72 focus-within:ring-2 ring-primary/20 ring-offset-2 transition-all">
                                 <Icon name="search" className="text-secondary w-4 h-4" />
                                 <input 
                                     type="text" 
-                                    placeholder="Search..." 
+                                    placeholder="Search courses, students..." 
                                     className="bg-transparent border-none focus:outline-none text-sm ml-2 w-full text-text-main placeholder-slate-400"
                                 />
                             </div>
                             <div className="flex items-center gap-4">
-                                <button className="relative p-2 text-secondary hover:bg-slate-50 rounded-full transition-colors">
+                                <button className="relative p-2 text-secondary hover:bg-slate-100 rounded-full transition-colors">
                                     <Icon name="bell" />
                                     <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
                                 </button>
+                                <div className="h-8 w-px bg-slate-200 mx-2"></div>
+                                <span className="text-sm font-medium text-secondary">Enterprise Plan</span>
                             </div>
                         </header>
 
-                        {/* Scrollable Area */}
-                        <div className="flex-1 overflow-y-auto p-8">
-                            <div className="max-w-7xl mx-auto">
+                        {/* Scrollable Content */}
+                        <div className="flex-1 overflow-y-auto pt-16 p-8 scroll-smooth">
+                            <div className="max-w-7xl mx-auto h-full">
                                 {renderContent()}
                             </div>
+                            <div className="h-12"></div> {/* Spacer */}
                         </div>
                     </main>
                 </div>
