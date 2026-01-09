@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .card { @apply bg-white shadow-md rounded-lg p-6 max-w-sm mx-auto my-4; }
+        .progress-bar { height: 10px; background-color: #2563eb; }
+        .progress-value { background-color: #10b981; width: calc(100% * 25/100); }
+        .action-button { @apply bg-emerald-500 text-white px-4 py-2 rounded-md hover:bg-emerald-600 transition duration-300 ease-in-out; }
+    </style>
+</head>
+<body>
+
+<div class="container mx-auto max-w-7xl py-8">
+    <!-- Dashboard -->
+    <h1 class="text-3xl font-bold mb-4">Course Management System</h1>
+    
+    <div class="grid grid-cols-2 gap-6">
+        <!-- Course Card Example -->
+        <div class="card">
+            <img src="https://via.placeholder.com/150" alt="Course Cover" class="w-full h-36 mb-4 rounded-lg">
+            <h2 class="text-xl font-semibold mb-2">Introduction to Programming</h2>
+            <p class="mb-4">Learn the basics of programming with Python.</p>
+            <div class="progress-bar h-10">
+                <div class="progress-value w-full"></div>
+            </div>
+            <button class="action-button mt-6">Enroll Now</button>
+        </div>
+
+        <!-- Add more course cards as needed -->
+    </div>
+    
+    <!-- Simple Form Example -->
+    <h2 class="text-2xl font-bold my-8">Create New Course</h2>
+    <form action="/submit-course" method="post">
+        <div class="mb-4">
+            <label for="title" class="block text-sm font-medium leading-6 text-gray-900">Title:</label>
+            <input type="text" id="title" name="title" required class="mt-2 block w-full px-3 py-2 border border-gray-300 shadow-sm placeholder:text-gray-400 focus:outline-none focus:border-emerald-600 sm:text-sm rounded-md">
+        </div>
+        
+        <button type="submit" class="action-button">Create Course</button>
+    </form>
+</div>
+
+<script src="https://cdn.tailwindcss.com"></script>
+</body>
+</html>
